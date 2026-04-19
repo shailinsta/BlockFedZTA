@@ -1,184 +1,194 @@
-\# BlockFedZTA: Federated Learning-Based Intrusion Detection System
+#  BlockFedZTA: Federated Learning-Based Zero Trust Intrusion Detection
 
+##  Overview
 
+**BlockFedZTA** is a research-driven framework that integrates **Federated Learning (FL)** with **Zero Trust Architecture (ZTA)** for robust and privacy-preserving intrusion detection.
 
-\## Overview
+The system is designed for distributed environments such as IoT and edge networks, enabling secure and decentralized model training.
 
-This project implements a \*\*Federated Learning-based Zero Trust Architecture (ZTA)\*\* for intrusion detection using multiple datasets (NSL-KDD, CIC-IDS, TON-IoT).
+---
 
+##  Key Features
 
+*  Zero Trust Security Integration
+*  Federated Learning Pipeline
+*  Drift-aware evaluation:
 
-The pipeline includes:
+  * No Drift
+  * Mild Drift
+  * Severe Drift
+*  Trust-based client aggregation
+*  Scalable and research-ready
 
-\- Data preprocessing \& merging
+---
 
-\- Feature engineering and scaling
+##  Dataset
 
-\- Model training (Random Forest / ML models)
+The dataset is included in this repository as a compressed file:
 
-\- Evaluation (accuracy, confusion matrix, ROC)
+```text
+data/Final_5Class_IDS.zip
+```
 
+This dataset is a processed and merged combination of:
 
+* NSL-KDD
+* CIC-IDS
+* TON-IoT
 
-\---
+---
 
+##  Dataset Setup (Important)
 
+###  Step 1 — Extract the Dataset
 
-\##  Project Structure
+Go to the `data/` folder and unzip:
 
+```text
+Final_5Class_IDS.zip
+```
 
+After extraction, you should have:
 
-BlockFedZTA/
+```text
+data/Final_5Class_IDS.csv
+```
 
-│
+---
 
-├── data/
+###  Step 2 — Update Path in Code
 
-│ ├── raw/ # Original datasets
+Open:
 
-│ └── processed/ # Cleaned \& transformed datasets
+```text
+src/run_pipeline.py
+```
 
-│ └── arrays/ # NumPy arrays (X, y, predictions)
+Find this line:
 
-│
+```python
+df = pd.read_csv("YOUR_PATH_HERE")
+```
 
-├── models/ # Trained models \& preprocessors
+Replace it with:
 
-├── results/
+```python
+df = pd.read_csv("data/Final_5Class_IDS.csv")
+```
 
-│ ├── figures/ # Plots (ROC, confusion matrix)
+---
 
-│ └── tables/ # Evaluation tables
-
-│
-
-├── notebooks/ # Jupyter notebooks (experiments)
-
-├── src/ # Source code
-
-│ └── run\_pipeline.py # Main pipeline script
-
-│
-
-├── docs/ # Documentation
-
-└── README.md
-
-
-
-
-
-\---
-
-
-
-\##  Pipeline Workflow
-
-
-
-1\. Load datasets (NSL, CIC, TON)
-
-2\. Clean and preprocess data
-
-3\. Merge datasets into unified format
-
-4\. Scale and transform features
-
-5\. Train model
-
-6\. Evaluate performance
-
-7\. Save outputs (model, predictions, metrics)
-
-
-
-\---
-
-
-
-\##  How to Run
-
-
-
-\### Step 1: Install dependencies
+###  Step 3 — Run the Project
 
 ```bash
+python src/run_pipeline.py
+```
 
-pip install pandas numpy scikit-learn matplotlib seaborn joblib
+---
 
+##  Project Structure
 
+```text
+BlockFedZTA/
+│
+├── data/
+│   └── Final_5Class_IDS.zip
+│
+├── src/
+│   └── run_pipeline.py
+│
+├── notebooks/
+├── README.md
+├── requirements.txt
+└── .gitignore
+```
 
+---
 
+##  Pipeline Workflow
 
-python src/run\_pipeline.py
+1. Load dataset
+2. Clean and preprocess features
+3. Encode labels
+4. Scale features
+5. Simulate federated clients
+6. Apply drift scenarios
+7. Train models (XGBoost)
+8. Trust-based aggregation
+9. Evaluate performance
 
+---
 
+##  Evaluation Metrics
 
-&#x20;Outputs
+* Accuracy
+* F1 Score
+* Robustness under drift
 
+---
 
+##  Example Results
 
-After running the pipeline:
+| Scenario     | Accuracy | F1 Score |
+| ------------ | -------- | -------- |
+| No Drift     | ~0.96    | ~0.96    |
+| Mild Drift   | ~0.94    | ~0.94    |
+| Severe Drift | ~0.92    | ~0.92    |
 
+---
 
+##  Research Contributions
 
-data/processed/final\_df.csv → Final dataset
+* Federated Learning for IDS
+* Trust-aware aggregation mechanism
+* Drift-resilient evaluation
+* Zero Trust integration in distributed ML
 
-models/model.pkl → Trained model
+---
 
-models/scaler.pkl → Scaler
+##  Important Notes
 
-results/ → Predictions and evaluation results
+* Do NOT use the `.zip` file directly
+* Always extract before running
+* Use relative path:
 
+  ```text
+  data/Final_5Class_IDS.csv
+  ```
+* Do NOT use absolute paths like:
 
+  ```text
+  C:\Users\...
+  ```
 
-&#x20;Datasets Used
+---
 
-NSL-KDD
+##  Common Errors
 
-CIC-IDS
+| Error          | Cause                 | Fix            |
+| -------------- | --------------------- | -------------- |
+| File not found | Dataset not extracted | Unzip file     |
+| Wrong path     | Using system path     | Use `data/...` |
+| Read error     | Using `.zip` file     | Use `.csv`     |
 
-TON-IoT
+---
 
+## Future Work
 
+* Real-time deployment on edge devices
+* Blockchain-based trust validation
+* Adaptive trust scoring
 
-&#x20;Evaluation Metrics
+---
 
-Accuracy
+##  Authors
 
-F1-score
+* **Shailendra Mishra**
+* **Megha Rathi**
+* **Shams Tahzib**
 
-Confusion Matrix
+---
 
-ROC Curve
-
-
-
-&#x20;Notes
-
-This project focuses on federated and distributed IDS
-
-Designed for research and reproducibility
-
-Extendable to deep learning or blockchain integration
-
-
-
-&#x20;Authors
-
-
-
-Shailendra Mishra
-
-Megha Rathi
-
-Shams Tahzib
-
-
-
-📜 License
-
-
+## 📜 License
 
 For academic and research use.
-

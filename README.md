@@ -131,9 +131,9 @@ BlockFedZTA/
 
 | Scenario     | Accuracy | F1 Score |
 | ------------ | -------- | -------- |
-| No Drift     | ~0.96    | ~0.96    |
-| Mild Drift   | ~0.94    | ~0.94    |
-| Severe Drift | ~0.92    | ~0.92    |
+| No Drift     | ~0.9655  | ~0.9652  |
+| Mild Drift   | ~0.9594  | ~0.9591  |
+| Severe Drift | ~0.9595  | ~0.9591  |
 
 ---
 

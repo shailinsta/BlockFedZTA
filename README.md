@@ -1,76 +1,91 @@
-#  BlockFedZTA: Federated Learning-Based Zero Trust Intrusion Detection
+# BlockFedZTA: Trust-Aware Federated Learning for Zero Trust Intrusion Detection
 
-##  Overview
+## Overview
 
-**BlockFedZTA** is a research-driven framework that integrates **Federated Learning (FL)** with **Zero Trust Architecture (ZTA)** for robust and privacy-preserving intrusion detection.
+BlockFedZTA is a research-driven framework that integrates Federated Learning (FL) with Zero Trust Architecture (ZTA) for secure, scalable, and privacy-preserving intrusion detection.
 
-The system is designed for distributed environments such as IoT and edge networks, enabling secure and decentralized model training.
-
----
-
-##  Key Features
-
-*  Zero Trust Security Integration
-*  Federated Learning Pipeline
-*  Drift-aware evaluation:
-
-  * No Drift
-  * Mild Drift
-  * Severe Drift
-*  Trust-based client aggregation
-*  Scalable and research-ready
+This version introduces a multi-factor trust-based aggregation mechanism that improves robustness under data drift, adversarial conditions, and large-scale client environments.
 
 ---
 
-##  Dataset
+## Key Features
 
-The dataset is included in this repository as a compressed file:
+- Zero Trust Security Integration  
+- Federated Learning-based Intrusion Detection  
+- Multi-factor Trust Model:
+  - Accuracy-based trust  
+  - Confidence-aware trust  
+  - Historical trust (EMA smoothing)  
+- Adversarial robustness:
+  - Label-flipping attack simulation  
+- Drift-aware evaluation:
+  - No Drift  
+  - Mild Drift  
+  - Severe Drift  
+- Baseline comparison:
+  - FedAvg  
+- Scalability analysis (3–15 clients)  
+- Reproducible and research-ready pipeline  
 
-```text
+---
+
+## Dataset
+
+The dataset is provided as:
+
+```
+
 data/Final_5Class_IDS.zip
+
 ```
 
-This dataset is a processed and merged combination of:
+It is a unified dataset created by combining:
 
-* NSL-KDD
-* CIC-IDS
-* TON-IoT
+- NSL-KDD  
+- CICIDS2017  
+- TON-IoT  
 
 ---
 
-##  Dataset Setup (Important)
+## Dataset Setup
 
-###  Step 1 — Extract the Dataset
+### Step 1 — Extract Dataset
 
-Go to the `data/` folder and unzip:
+Unzip the dataset:
 
-```text
-Final_5Class_IDS.zip
 ```
 
-After extraction, you should have:
+data/Final_5Class_IDS.zip
 
-```text
+```
+
+After extraction:
+
+```
+
 data/Final_5Class_IDS.csv
+
 ```
 
 ---
 
-###  Step 2 — Update Path in Code
+### Step 2 — Update Path
 
 Open:
 
-```text
-src/run_pipeline.py
 ```
 
-Find this line:
+src/run_pipeline.py
+
+````
+
+Replace:
 
 ```python
 df = pd.read_csv("YOUR_PATH_HERE")
-```
+````
 
-Replace it with:
+With:
 
 ```python
 df = pd.read_csv("data/Final_5Class_IDS.csv")
@@ -78,7 +93,7 @@ df = pd.read_csv("data/Final_5Class_IDS.csv")
 
 ---
 
-###  Step 3 — Run the Project
+### Step 3 — Run the Project
 
 ```bash
 python src/run_pipeline.py
@@ -86,9 +101,9 @@ python src/run_pipeline.py
 
 ---
 
-##  Project Structure
+## Project Structure
 
-```text
+```
 BlockFedZTA/
 │
 ├── data/
@@ -105,90 +120,138 @@ BlockFedZTA/
 
 ---
 
-##  Pipeline Workflow
+## Pipeline Workflow
 
 1. Load dataset
-2. Clean and preprocess features
-3. Encode labels
-4. Scale features
-5. Simulate federated clients
-6. Apply drift scenarios
-7. Train models (XGBoost)
-8. Trust-based aggregation
-9. Evaluate performance
+2. Feature cleaning and normalization
+3. Label encoding
+4. Feature scaling
+5. Federated client simulation
+6. Drift injection (noise, blackout, label flipping)
+7. Model training (XGBoost per client)
+8. Trust computation:
+
+   * Accuracy
+   * Confidence
+   * Historical trust (EMA)
+9. Trust-based aggregation
+10. FedAvg baseline comparison
+11. Performance evaluation
+12. Scalability analysis
 
 ---
 
-##  Evaluation Metrics
+## Trust Model
+
+The trust score for each client is computed as:
+
+```
+Trust = α × Accuracy + β × Confidence + γ × Historical Trust
+```
+
+Where:
+
+* Accuracy = validation accuracy
+* Confidence = prediction probability strength
+* Historical Trust = exponential moving average
+
+---
+
+## Evaluation Metrics
 
 * Accuracy
 * F1 Score
 * Robustness under drift
+* Trust vs FedAvg comparison
+* Scalability performance
 
 ---
 
-##  Example Results
+## Experimental Results
 
-| Scenario     | Accuracy | F1 Score |
-| ------------ | -------- | -------- |
-| No Drift     | ~0.9655  | ~0.9652  |
-| Mild Drift   | ~0.9594  | ~0.9591  |
-| Severe Drift | ~0.9595  | ~0.9591  |
+### Drift Evaluation
 
----
-
-##  Research Contributions
-
-* Federated Learning for IDS
-* Trust-aware aggregation mechanism
-* Drift-resilient evaluation
-* Zero Trust integration in distributed ML
+| Scenario     | Trust-Based | FedAvg |
+| ------------ | ----------- | ------ |
+| No Drift     | ~0.963      | ~0.964 |
+| Mild Drift   | ~0.962      | ~0.953 |
+| Severe Drift | ~0.962      | ~0.949 |
 
 ---
 
-##  Important Notes
+### Scalability Results
 
-* Do NOT use the `.zip` file directly
-* Always extract before running
+| Clients | Trust  | FedAvg |
+| ------- | ------ | ------ |
+| 3       | ~0.964 | ~0.958 |
+| 5       | ~0.963 | ~0.954 |
+| 8       | ~0.962 | ~0.949 |
+| 10      | ~0.960 | ~0.946 |
+| 15      | ~0.959 | ~0.940 |
+
+---
+
+## Key Insights
+
+* Trust-based aggregation matches FedAvg under ideal conditions
+* Trust significantly outperforms FedAvg under drift
+* Performance gap increases with number of clients
+* Trust model effectively suppresses unreliable clients
+* System remains stable under adversarial conditions
+
+---
+
+## Research Contributions
+
+* Trust-aware federated aggregation framework
+* Confidence-enhanced trust scoring mechanism
+* Robustness against label poisoning attacks
+* Drift-resilient federated intrusion detection
+* Scalable evaluation across multiple client configurations
+* Integration of Zero Trust principles with federated learning
+
+---
+
+## Important Notes
+
+* Extract dataset before use
 * Use relative path:
 
-  ```text
+  ```
   data/Final_5Class_IDS.csv
   ```
-* Do NOT use absolute paths like:
-
-  ```text
-  C:\Users\...
-  ```
+* Do not use absolute paths (e.g., C:\Users...)
 
 ---
 
-##  Common Errors
+## Common Errors
 
 | Error          | Cause                 | Fix            |
 | -------------- | --------------------- | -------------- |
 | File not found | Dataset not extracted | Unzip file     |
-| Wrong path     | Using system path     | Use `data/...` |
+| Wrong path     | Using absolute path   | Use `data/...` |
 | Read error     | Using `.zip` file     | Use `.csv`     |
 
 ---
 
 ## Future Work
 
-* Real-time deployment on edge devices
+* Real-time deployment on edge/IoT environments
 * Blockchain-based trust validation
 * Adaptive trust scoring
+* Advanced adversarial defense mechanisms
 
 ---
 
-##  Authors
+## Authors
 
-* **Shailendra Mishra**
-* **Megha Rathi**
-* **Shams Tahzib**
+* S.M
+* M.R
+* S.T
 
 ---
 
-## 📜 License
+## License
 
-For academic and research use.
+For academic and research use only.
+

@@ -7,9 +7,12 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 import xgboost as xgb
 
 
-# ---------- LOAD ----------
+# =========================
+# LOAD
+# =========================
 print("Loading dataset...")
-df = pd.read_csv(r"C:\Users\Tahzib\Desktop\BlockFedZTA\data\raw\Final_5Class_IDS.csv")
+df = pd.read_csv(r"C:\Users\Tahzib\Desktop\BlockFedZTA-main\BlockFedZTA-main\data\Final_5Class_IDS\Final_5Class_IDS.csv")
+
 
 X_raw = df.drop(columns=["label"])
 y_raw = df["label"]
@@ -23,10 +26,12 @@ n_classes = len(np.unique(y_enc))
 CLASS_NAMES = list(le.classes_)
 
 print("Classes:", CLASS_NAMES)
-print("Feature count:", X_raw.shape[1])
+print("Features:", X_raw.shape[1])
 
 
-# ---------- SCALING ----------
+# =========================
+# SCALE
+# =========================
 scaler = StandardScaler()
 X_sc = scaler.fit_transform(X_raw)
 
@@ -35,7 +40,9 @@ skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 RESULTS = {}
 
 
-# ---------- DRIFT ----------
+# =========================
+# DRIFT CONFIG
+# =========================
 DRIFT_CFG = {
     "NO DRIFT":     dict(noise=0.00, blackout=0.00, flip=0.00),
     "MILD DRIFT":   dict(noise=0.04, blackout=0.08, flip=0.02),
@@ -43,27 +50,40 @@ DRIFT_CFG = {
 }
 
 
+# =========================
+# POISONING
+# =========================
+def poison_labels(y, ratio=0.3):
+    y = y.copy()
+    n = int(len(y) * ratio)
+    if n > 0:
+        idx = np.random.choice(len(y), n, replace=False)
+        y[idx] = np.random.permutation(y[idx])
+    return y
+
+
+# =========================
+# DEGRADATION
+# =========================
 def degrade(X, y, cid, cfg):
     X = X.copy(); y = y.copy()
 
     if cfg["noise"] > 0:
-        scale = cfg["noise"] * (1 + 0.5 * cid)
-        X += np.random.normal(0, scale, X.shape)
+        X += np.random.normal(0, cfg["noise"] * (1 + 0.5*cid), X.shape)
 
     if cfg["blackout"] > 0:
-        n_feat = int(X.shape[1] * cfg["blackout"] * (1 + 0.3 * cid))
-        X[:, :n_feat] = 0
+        k = int(X.shape[1] * cfg["blackout"])
+        X[:, :k] = 0
 
-    if cfg["flip"] > 0:
-        ratio = cfg["flip"] * (1 + 0.5 * cid)
-        n_flip = int(len(y) * ratio)
-        idx = np.random.choice(len(y), n_flip, replace=False)
-        y[idx] = np.random.randint(0, n_classes, size=n_flip)
+    if cid == 1 and cfg["flip"] > 0:
+        y = poison_labels(y, cfg["flip"])
 
     return X, y
 
 
-# ---------- MODEL ----------
+# =========================
+# MODEL
+# =========================
 def build_model(cid, cfg):
     if cid == 0 or cfg["noise"] == 0:
         return xgb.XGBClassifier(
@@ -83,22 +103,26 @@ def build_model(cid, cfg):
         )
 
 
-# ---------- EXPERIMENT ----------
-def run_experiment(scenario_name):
-    cfg = DRIFT_CFG[scenario_name]
+# =========================
+# EXPERIMENT
+# =========================
+def run_experiment(name, cfg, NUM_CLIENTS=8):
 
-    print("\n" + "="*50)
-    print(f"  Scenario: {scenario_name}")
-    print("="*50)
+    print("\n" + "="*60)
+    print(f"SCENARIO: {name} | CLIENTS: {NUM_CLIENTS}")
+    print("="*60)
 
-    accs, f1s = [], []
+    accs, fedavg_accs = [], []
+    prev_trusts = np.ones(NUM_CLIENTS) * 0.5
 
     for fold, (tr, te) in enumerate(skf.split(X_sc, y_enc), 1):
+
+        print(f"\n--- FOLD {fold} ---")
 
         Xtr, Xte = X_sc[tr], X_sc[te]
         ytr, yte = y_enc[tr], y_enc[te]
 
-        splits = np.array_split(range(len(Xtr)), 3)
+        splits = np.array_split(range(len(Xtr)), NUM_CLIENTS)
 
         models, trust_scores = [], []
 
@@ -107,68 +131,95 @@ def run_experiment(scenario_name):
             X_loc = Xtr[idx]
             y_loc = ytr[idx]
 
-            # ensure all classes exist
             for c in range(n_classes):
                 if c not in y_loc:
-                    X_loc = np.vstack([X_loc, np.zeros(X_loc.shape[1])])
+                    X_loc = np.vstack([X_loc, np.zeros((1, X_loc.shape[1]))])
                     y_loc = np.append(y_loc, c)
 
             X_tr, X_val, y_tr, y_val = train_test_split(
-                X_loc, y_loc,
-                test_size=0.2,
-                stratify=y_loc,
-                random_state=fold
+                X_loc, y_loc, test_size=0.2,
+                stratify=y_loc, random_state=fold
             )
 
-            # apply drift only to clients 1 & 2
             if cid > 0:
                 X_tr, y_tr = degrade(X_tr, y_tr, cid, cfg)
 
             model = build_model(cid, cfg)
             model.fit(X_tr, y_tr)
 
-            trust = accuracy_score(
-                y_val,
-                np.argmax(model.predict_proba(X_val), axis=1)
-            )
+            probs = model.predict_proba(X_val)
+            pred = np.argmax(probs, axis=1)
 
-            print(f"  Fold {fold} | Client {cid} | Trust: {trust:.4f}")
+            acc = accuracy_score(y_val, pred)
+            conf = np.mean(np.max(probs, axis=1))
+
+            trust = 0.7*acc + 0.2*conf + 0.1*prev_trusts[cid]
+            prev_trusts[cid] = trust
+
+            print(f"Client {cid:<2} | Trust: {trust:.4f}")
 
             models.append(model)
             trust_scores.append(trust)
 
-        # ---------- AGGREGATION ----------
-        w = np.array(trust_scores)
-        w = w / (w.sum() + 1e-9)
+        t = np.array(trust_scores)
+        t = (t - t.min()) / (t.max() - t.min() + 1e-9)
+        t = t ** 8
+        w = t / (t.sum() + 1e-9)
 
         probs = [m.predict_proba(Xte) for m in models]
-        final = sum(wi * p for wi, p in zip(w, probs))
 
-        pred = np.argmax(final, axis=1)
+        trust_probs = sum(wi * p for wi, p in zip(w, probs))
+        trust_pred = np.argmax(trust_probs, axis=1)
 
-        acc = accuracy_score(yte, pred)
-        f1 = f1_score(yte, pred, average="weighted")
+        fedavg_probs = np.mean(probs, axis=0)
+        fedavg_pred = np.argmax(fedavg_probs, axis=1)
 
-        print(f"  >>> Fold {fold}: ACC={acc:.4f} | F1={f1:.4f}")
+        t_acc = accuracy_score(yte, trust_pred)
+        f_acc = accuracy_score(yte, fedavg_pred)
 
-        accs.append(acc)
-        f1s.append(f1)
+        print(f"Result → Trust={t_acc:.4f} | FedAvg={f_acc:.4f}")
 
-    print(f"\n  MEAN ACC = {np.mean(accs):.4f}  |  MEAN F1 = {np.mean(f1s):.4f}")
+        accs.append(t_acc)
+        fedavg_accs.append(f_acc)
 
-    RESULTS[scenario_name] = (np.mean(accs), np.mean(f1s))
+    mean_t = np.mean(accs)
+    mean_f = np.mean(fedavg_accs)
+
+    print("\n" + "-"*60)
+    print(f"FINAL RESULT ({name})")
+    print(f"Trust Mean : {mean_t:.4f}")
+    print(f"FedAvg Mean: {mean_f:.4f}")
+    print("-"*60)
+
+    RESULTS[name] = (mean_t, mean_f)
 
 
-# ---------- RUN ----------
-run_experiment("NO DRIFT")
-run_experiment("MILD DRIFT")
-run_experiment("SEVERE DRIFT")
+# =========================
+# RUN BASE
+# =========================
+run_experiment("NO DRIFT", DRIFT_CFG["NO DRIFT"])
+run_experiment("MILD DRIFT", DRIFT_CFG["MILD DRIFT"])
+run_experiment("SEVERE DRIFT", DRIFT_CFG["SEVERE DRIFT"])
 
 
-# ---------- SUMMARY ----------
-print("\n" + "="*50)
-print("  ABLATION SUMMARY")
-print("="*50)
+# =========================
+# SCALABILITY
+# =========================
+CLIENTS = [3, 5, 8, 10, 15]
+
+for n in CLIENTS:
+    run_experiment(f"{n}_CLIENTS", DRIFT_CFG["SEVERE DRIFT"], NUM_CLIENTS=n)
+
+
+# =========================
+# FINAL SUMMARY
+# =========================
+print("\n" + "="*60)
+print(f"{'SCENARIO':<20} {'TRUST':<10} {'FEDAVG':<10}")
+print("="*60)
 
 for k in RESULTS:
-    print(f"  {k:<14}  ACC={RESULTS[k][0]:.4f}  F1={RESULTS[k][1]:.4f}")
+    t, f = RESULTS[k]
+    print(f"{k:<20} {t:.4f}     {f:.4f}")
+
+print("="*60)

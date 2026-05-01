@@ -245,6 +245,7 @@ Where:
 
 ## Authors
 
+* R.A
 * S.M
 * M.R
 * S.T

@@ -262,8 +262,8 @@ Results validated using a two-sample t-test across 5 independent runs:
 |------|
 | R.A. |
 | S.M. |
-| M.R. |
 | S.T. |
+| M.R. |
 
 ---
 

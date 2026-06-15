@@ -1,0 +1,4 @@
+Trust Formula,Trust Accuracy,Trust Macro F1,FedAvg Accuracy
+Accuracy Only,0.96478,0.9645353522343539,0.94431
+Accuracy + Confidence,0.9647,0.9644547235165095,0.94431
+Accuracy + Confidence + Historical Trust,0.9647,0.9644547235165095,0.94431

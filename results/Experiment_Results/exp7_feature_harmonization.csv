@@ -1,0 +1,4 @@
+Dataset,Original Features,Final Training Features
+NSL-KDD,44,118
+CICIDS2017,79,118
+ToN-IoT,21,118
